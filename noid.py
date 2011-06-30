@@ -34,7 +34,6 @@ def dbCreate(dbdir=None, template=".zd", term="medium", NAAN=None, NAA=None, Sub
         prefix, mask = template.split('.')
     except ValueError:
         raise InvalidTemplateError("Template must contain exactly one '.' character to seperate the prefix from the mask.")
-
     if NAAN:
         firstpart = NAAN + '/' + prefix
     else:
@@ -110,7 +109,7 @@ def mint(dbdir=None):
     props['counter'] += 1
     noiddb.put(R + 'oacounter', str(props['counter']))
 
-    noid = props['prefix'] + '/' + noid
+    noid = props['prefix'] + noid
     if props['check']:
         noid += checkdigit(noid)
     noiddb.put(noid, '')
