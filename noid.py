@@ -88,9 +88,10 @@ class Minter:
         # connect to db
         self.noiddb = db.DB()
         self.noiddb.open(join(dbdir, DBNAME), DBNAME, db.DB_HASH)
-        self.props = self._getProperties()
+        self._getProperties()
 
     def mint(self):
+        self._getProperties()
         # has the counter reached the limit?
         if (self.props['limit'] != NOLIMIT) and (self.props['counter'] >= self.props['limit']):
             # we're out of space. What do we do?
@@ -121,6 +122,7 @@ class Minter:
         if self.props['check']:
             noid += checkdigit(noid)
             self.setCircRec(noid)
+        self.noiddb.sync()
         return noid
 
 
@@ -143,7 +145,7 @@ class Minter:
 
     def _getProperties(self):
         def s2bool(s): return s == 'True' 
-        return {
+        self.props = {
             'counter': int(self.noiddb.get(R + 'oacounter')),
             'mask': self.noiddb.get(R + 'mask'),
             'limit': int(self.noiddb.get(R + 'oatop')),
