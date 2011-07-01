@@ -77,76 +77,117 @@ def dbCreate(dbdir=None, template=".zd", term="medium", NAAN=None, NAA=None, Sub
         noiddb.put(R + key, str(properties[key]))
 
     noiddb.close()
+    return dbdir
 
-               
-def mint(dbdir=None):
-    if not dbdir:
-        dbdir = curdir
-    dbdir = join(dbdir, 'NOID')
-    # get some variables from the db
-    noiddb = db.DB()
-    noiddb.open(join(dbdir, DBNAME), DBNAME, db.DB_HASH)
-    props = _getProperties(noiddb)
-    # has the counter reached the limit?
-    if (props['limit'] != NOLIMIT) and (props['counter'] >= props['limit']):
-        # we're out of space. What do we do?
-        if props['longterm'] or (not wrap):
-            # panic. (if we aren't minting shortterm)
-            raise NamespaceError("Identifiers exhusted; stopped at " + limit)
-        else:
-            # or reset counters. (if we are minting shortterm)
-            props['gen'] = noiddb.get(R + 'generator_type')
-            if props['gen'] == GENTYPES['s']:
-                props['counter'] = 0
+
+class Minter:
+    def __init__(self, dbdir=None):
+        if not dbdir:
+            dbdir = curdir
+        dbdir = join(dbdir, 'NOID')
+        # connect to db
+        self.noiddb = db.DB()
+        self.noiddb.open(join(dbdir, DBNAME), DBNAME, db.DB_HASH)
+        self.props = self._getProperties()
+
+    def mint(self):
+        # has the counter reached the limit?
+        if (self.props['limit'] != NOLIMIT) and (self.props['counter'] >= self.props['limit']):
+            # we're out of space. What do we do?
+            if self.props['longterm'] or (not self.props['wrap']):
+                # panic. (if we aren't minting shortterm)
+                raise NamespaceError("Identifiers exhusted; stopped at " + limit)
             else:
-                _initCounters(noiddb)
-    # Counter is lower than limit (& may have been reset).
-    if props['gen'] == GENTYPES['r']:
-        # mint quasi-randomly
-        # TODO: implement quasi-random minting
-        n = props['counter']
-    else:
-        # mint sequentially
-        n = props['counter']
+                # or reset counters. (if we are minting shortterm)
+                self.props['gen'] = self.noiddb.get(R + 'generator_type')
+                if self.props['gen'] == GENTYPES['s']:
+                    self.props['counter'] = 0
+                else:
+                    self._initCounters()
+        # Counter is lower than limit (& may have been reset).
+        if self.props['gen'] == GENTYPES['r']:
+            # mint quasi-randomly
+            # TODO: implement quasi-random minting
+            n = self.props['counter']
+        else:
+            # mint sequentially
+            n = self.props['counter']
 
-    noid = _n2xdig(n, props['mask'])
-    props['counter'] += 1
-    noiddb.put(R + 'oacounter', str(props['counter']))
+        noid = _n2xdig(n, self.props['mask'])
+        self.props['counter'] += 1
+        self.noiddb.put(R + 'oacounter', str(self.props['counter']))
 
-    noid = props['prefix'] + noid
-    if props['check']:
-        noid += checkdigit(noid)
-    setCircRec(noid)
-    return noid
-
-
-def bind(noid, element, value, dbdir=None):
-    if not dbdir:
-        dbdir = curdir
-    dbdir = join(dbdir, 'NOID')
-    noiddb = db.DB()
-    noiddb.open(join(dbdir, DBNAME), DBNAME, db.DB_HASH)
-    # write the binding
-    noiddb.put(noid, uri)
-
-# validation is very limited and assumes checkchar is on.
-# this is really only for dev testing, not a true validation method yet.
-# TODO: make a proper validation method
-def validate(noid, dbdir=None):
-    if not checkdigit(noid[0:-1]) == noid[-1]:
-        raise ValidationError("Noid check character doesn't match up for [" + noid + "].")
-    return True
+        noid = self.props['prefix'] + noid
+        if self.props['check']:
+            noid += checkdigit(noid)
+            self.setCircRec(noid)
+        return noid
 
 
-def checkdigit(s):
-    def ordinal(x):
-        try: return XDIGIT.index(x)
-        except: return 0
-    return XDIGIT[sum([x * (i+1) for i, x in enumerate(map(ordinal,s))]) % len(XDIGIT)]
+    def bind(self, noid, element, value):
+        # write the binding
+        self.noiddb.put(noid, uri)
+
+    # validation is very limited and assumes checkchar is on.
+    # this is really only for dev testing, not a true validation method yet.
+    # TODO: make a proper validation method
+    def validate(self, noid):
+        if not checkdigit(noid[0:-1]) == noid[-1]:
+            raise ValidationError("Noid check character doesn't match up for [" + noid + "].")
+        return True
 
 
-def setCircRec(noid):
-    pass
+    def setCircRec(self, noid):
+        pass
+
+
+    def _getProperties(self):
+        def s2bool(s): return s == 'True' 
+        return {
+            'counter': int(self.noiddb.get(R + 'oacounter')),
+            'mask': self.noiddb.get(R + 'mask'),
+            'limit': int(self.noiddb.get(R + 'oatop')),
+            'longterm': s2bool(self.noiddb.get(R + 'longterm')),
+            'wrap': s2bool(self.noiddb.get(R + 'wrap')),
+            'check': s2bool(self.noiddb.get(R + 'addcheckchar')),
+            'gen': self.noiddb.get(R + 'generator_type'),
+            'prefix': self.noiddb.get(R + 'prefix'),
+            'activeCount': self.noiddb.get(R + 'saclist'),
+            'inactiveCount': self.noiddb.get(R + 'siclist')
+            }
+
+
+    def _initCounters(self):
+        maxcounters = 293     # prime.
+        oacounter = 0
+        total = self.noiddb.get(R + 'limit')
+        percounter = (total / maxcounters + 1)
+        saclist = ''
+        counters = {}
+        n, t = 0, total
+        while t > 0:
+            if t >= percounter:
+                counters[n] = percounter
+            else: 
+                counters[n] = t
+            saclist += "c" + str(n) + " "
+            t -= percounter
+            n += 1
+
+        for key in counters.keys():
+            cname = R + "c" + key + "/"
+            top, value = counters[key]
+            self.noiddb.put(cname + 'top', str(top))
+            self.noiddb.put(cname + 'value', '0')
+    
+        properties = {
+            'oacounter': oacounter,
+            'percounter': percounter,
+            'saclist': saclist, 
+            'siclist': ''
+            }
+        for key in properties.keys():
+            self.noiddb.put(R + key, str(properties[key]))
 
 
 def _n2xdig(n, mask):
@@ -182,56 +223,7 @@ def _n2xdig(n, mask):
         raise NamespaceError("Cannot mint a noid for (counter = " + str(req) + ") within this namespace.")
     
     return xdig[::-1]
-
-
-def _getProperties(noiddb):
-    def s2bool(s): return s == 'True' 
-    return {
-        'counter': int(noiddb.get(R + 'oacounter')),
-        'mask': noiddb.get(R + 'mask'),
-        'limit': int(noiddb.get(R + 'oatop')),
-        'longterm': s2bool(noiddb.get(R + 'longterm')),
-        'wrap': s2bool(noiddb.get(R + 'wrap')),
-        'check': s2bool(noiddb.get(R + 'addcheckchar')),
-        'gen': noiddb.get(R + 'generator_type'),
-        'prefix': noiddb.get(R + 'prefix'),
-        'activeCount': noiddb.get(R + 'saclist'),
-        'inactiveCount': noiddb.get(R + 'siclist')
-        }
-
-
-def _initCounters(noiddb):
-    maxcounters = 293     # prime.
-    oacounter = 0
-    total = noiddb.get(R + 'limit')
-    percounter = (total / maxcounters + 1)
-    saclist = ''
-    counters = {}
-    n, t = 0, total
-    while t > 0:
-        if t >= percounter:
-            counters[n] = percounter
-        else: 
-            counters[n] = t
-        saclist += "c" + str(n) + " "
-        t -= percounter
-        n += 1
-
-    for key in counters.keys():
-        cname = R + "c" + key + "/"
-        top, value = counters[key]
-        noiddb.put(cname + 'top', str(top))
-        noiddb.put(cname + 'value', '0')
     
-    properties = {
-        'oacounter': oacounter,
-        'percounter': percounter,
-        'saclist': saclist, 
-        'siclist': ''
-        }
-    for key in properties.keys():
-        noiddb.put(R + key, str(properties[key]))
-
 
 def _getTotal(mask):
     if mask[0] == 'z':
@@ -245,6 +237,12 @@ def _getTotal(mask):
                 total *= len(DIGIT)
     return total            
         
+
+def checkdigit(s):
+    def ordinal(x):
+        try: return XDIGIT.index(x)
+        except: return 0
+    return XDIGIT[sum([x * (i+1) for i, x in enumerate(map(ordinal,s))]) % len(XDIGIT)]
 
 
 class InvalidTemplateError(Exception):
