@@ -1,14 +1,18 @@
 from os import makedirs
 from os.path import curdir, join, realpath
+from datetime import date
 from bsddb3 import db
 
 DIGIT = range(10)
-XDIGIT = ['0','1','2','3','4','5','6','7','8','9','b','c','d','f','g','h','j','k','m','n','p','q','r','s','t','v','w','x','z']
+XDIGIT = ['0','1','2','3','4','5','6','7','8','9','b','c','d','f','g',
+          'h','j','k','m','n','p','q','r','s','t','v','w','x','z']
 SEQNUM_MIN = 1
 SEQNUM_MAX = 1000000
 NOLIMIT = -1
 GENTYPES = {'r': 'random', 's': 'sequential', 'z': 'sequential'}
 MASKS = ['e','d']
+HOWS = ['new', 'replace', 'set', 'append', 'prepend', 'add', 'insert', 
+        'delete', 'purge', 'mint', 'peppermint']
 R = ':/' # admin variable prefix
 DBNAME = 'noid.bdb'
 VERSION = 'pynoid 0.1'
@@ -112,9 +116,18 @@ def mint(dbdir=None):
     noid = props['prefix'] + noid
     if props['check']:
         noid += checkdigit(noid)
-    noiddb.put(noid, '')
+    setCircRec(noid)
     return noid
 
+
+def bind(noid, element, value, dbdir=None):
+    if not dbdir:
+        dbdir = curdir
+    dbdir = join(dbdir, 'NOID')
+    noiddb = db.DB()
+    noiddb.open(join(dbdir, DBNAME), DBNAME, db.DB_HASH)
+    # write the binding
+    noiddb.put(noid, uri)
 
 # validation is very limited and assumes checkchar is on.
 # this is really only for dev testing, not a true validation method yet.
@@ -130,6 +143,10 @@ def checkdigit(s):
         try: return XDIGIT.index(x)
         except: return 0
     return XDIGIT[sum([x * (i+1) for i, x in enumerate(map(ordinal,s))]) % len(XDIGIT)]
+
+
+def setCircRec(noid):
+    pass
 
 
 def _n2xdig(n, mask):
