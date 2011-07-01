@@ -126,9 +126,9 @@ class Minter:
         return noid
 
 
-    def bind(self, noid, element, value):
+    def bind(self, noid, element, value, how='new'):
         # write the binding
-        self.noiddb.put(noid, uri)
+        self.noiddb.put(noid + '\t' + element, value)
 
     # validation is very limited and assumes checkchar is on.
     # this is really only for dev testing, not a true validation method yet.
@@ -140,7 +140,9 @@ class Minter:
 
 
     def setCircRec(self, noid):
-        pass
+        status = 'i'
+        contact = ""
+        self.noiddb.put(noid + '\t' + R + '/c', status + '|' + str(date.today()) + '|' + contact + '|' + str(self.props['counter']))
 
 
     def _getProperties(self):
