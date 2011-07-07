@@ -150,6 +150,3 @@ class ValidationError(Exception):
 
 class NamespaceError(Exception):
     pass
-
-class BindingError(Exception):
-    pass
