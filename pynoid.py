@@ -3,6 +3,7 @@ from random import randint
 DIGIT = ['0','1','2','3','4','5','6','7','8','9']
 XDIGIT = DIGIT + ['b','c','d','f','g','h','j','k','m','n','p','q','r','s','t','v','w','x','z']
 GENTYPES = ['r', 's', 'z']
+SHORT = '.shrt.'
 VERSION = 'pynoid 0.1'
 
 
@@ -20,7 +21,7 @@ def mint(template='zek', n=None, scheme=None, naa=None):
 
     The result is appended to the scheme and naa as follows: scheme + naa + '/' + [id].
 
-    There is no checking to ensure ids are not reminted. Instead, minting can be controlled by supplying a (int) value for 'n'. It is possible to implement ordered or random minting from available ids by manipulating this number from another program. If no 'n' is given, minting is random from within the namespace. A ':shrt:' is added between '/' and [id] to indicate that these ids are for short term testing only. An override may be added later to accommodate applications which don't mind getting used ids. 
+    There is no checking to ensure ids are not reminted. Instead, minting can be controlled by supplying a (int) value for 'n'. It is possible to implement ordered or random minting from available ids by manipulating this number from another program. If no 'n' is given, minting is random from within the namespace. An indicator is added between '/' and [id] to mark these ids as for short term testing only. An override may be added later to accommodate applications which don't mind getting used ids. 
 
     A note about 'r', 's', and 'z': 'z' indicates that a namespace should expand on its first element to accommodate any 'n' value (eg. 'de' becomes 'dde' then 'ddde' as numbers get larger). That expansion can be handled by this method. 'r' and 's' (typically meaning 'random' and 'sequential') are recognized as valid values, but ignored and must be implemented elsewhere.
     '''
@@ -38,7 +39,7 @@ def mint(template='zek', n=None, scheme=None, naa=None):
 
     if n == None:
         if mask[0] in GENTYPES:
-            prefix = ':shrt:' + prefix
+            prefix = SHORT + prefix
             mask = mask[1:]
         n = randint(0, _getTotal(mask) -1)
 

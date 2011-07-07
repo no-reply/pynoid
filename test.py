@@ -23,7 +23,7 @@ class PynoidTests(unittest.TestCase):
     
     def test_mint_short_term(self):
         noid = pynoid.mint()
-        self.assertTrue(noid.startswith(':shrt:'))
+        self.assertTrue(noid.startswith(pynoid.SHORT))
 
     def test_mint_ns(self):
         ns = range(10)
