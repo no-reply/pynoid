@@ -2,7 +2,7 @@ from random import randint
 
 DIGIT = ['0','1','2','3','4','5','6','7','8','9']
 XDIGIT = DIGIT + ['b','c','d','f','g','h','j','k','m','n','p','q','r','s','t','v','w','x','z']
-GENTYPES = {'r': 'random', 's': 'sequential', 'z': 'sequential'}
+GENTYPES = ['r', 's', 'z']
 VERSION = 'pynoid 0.1'
 
 
@@ -63,6 +63,12 @@ def validate(s):
     if not _checkdigit(s[0:-1]) == s[-1]:
         raise ValidationError("Noid check character '" + s[-1] + "' doesn't match up for '" + s + "'.")
     return True
+
+
+def version():
+    '''Returns the current version of the pynoid software.
+    '''
+    return VERSION
 
 
 def _n2xdig(n, mask):

@@ -1,6 +1,7 @@
 
 import unittest
 import pynoid
+import re
 
 class PynoidTests(unittest.TestCase):
     
@@ -55,6 +56,9 @@ class PynoidTests(unittest.TestCase):
     def test_checkdigit(self):
         self.assertEqual(pynoid.mint('eek', 100), '3f0')
         self.assertRaises(pynoid.ValidationError, pynoid.validate, 'f30')
+
+    def test_version(self):
+        self.assertTrue(re.match("pynoid \d.\d\Z", pynoid.version()))
 
 if __name__ == '__main__':
     unittest.main()
