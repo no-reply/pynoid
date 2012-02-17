@@ -3,6 +3,7 @@ from random import randint
 DIGIT = ['0','1','2','3','4','5','6','7','8','9']
 XDIGIT = DIGIT + ['b','c','d','f','g','h','j','k','m','n','p','q','r','s','t','v','w','x','z']
 GENTYPES = ['r', 's', 'z']
+DIGTYPES = ['d', 'e']
 SHORT = '.shrt.'
 VERSION = 'pynoid 0.1'
 
@@ -21,8 +22,8 @@ def mint(template='zek', n=None, scheme=None, naa=None):
 
     The result is appended to the scheme and naa as follows: scheme + naa + '/' + [id].
 
-    There is no checking to ensure ids are not reminted. Instead, minting can be controlled by supplying a (int) value for 'n'. It is possible to implement ordered or random minting from available ids by manipulating this number from another program. If no 'n' is given, minting is random from within the namespace. An indicator is added between '/' and [id] to mark these ids as for short term testing only. An override may be added later to accommodate applications which don't mind getting used ids. 
-
+    There is no checking to ensure ids are not reminted. Instead, minting can be controlled by supplying a (int) value for 'n'. It is possible to implement ordered or random minting from available ids by manipulnating this number from another program. If no 'n' is given, minting is random from within the namespace. An indicator is added between '/' and [id] to mark these ids as for short term testing only. An override may be added later to accommodate applications which don't mind getting used ids. 
+nn
     A note about 'r', 's', and 'z': 'z' indicates that a namespace should expand on its first element to accommodate any 'n' value (eg. 'de' becomes 'dde' then 'ddde' as numbers get larger). That expansion can be handled by this method. 'r' and 's' (typically meaning 'random' and 'sequential') are recognized as valid values, but ignored and must be implemented elsewhere.
     '''
 
@@ -33,21 +34,22 @@ def mint(template='zek', n=None, scheme=None, naa=None):
         prefix = ''
 
     try:
-        _validateMask(mask)
+        __validateMask(mask)
     except:
         raise
 
     if n == None:
-        if mask[0] in GENTYPES:
-            prefix = SHORT + prefix
+        if mask[0] in (GENTYPES):
             mask = mask[1:]
-        n = randint(0, _getTotal(mask) -1)
+        # If we hit this point, this is a random (and therefore, short-term) identifier. 
+        prefix = SHORT + prefix
+        n = randint(0, __getTotal(mask) -1)
 
-    noid = prefix + _n2xdig(n, mask)
+    noid = prefix + __n2xdig(n, mask)
     if naa:
         noid = naa.strip('/') + '/' + noid
     if template[-1] == 'k':
-        noid += _checkdigit(noid)
+        noid += __checkdigit(noid)
     if scheme:
         noid = scheme + noid
 
@@ -61,7 +63,7 @@ def validate(s):
 
     Returns True on success, ValidationError on failure.
     '''
-    if not _checkdigit(s[0:-1]) == s[-1]:
+    if not __checkdigit(s[0:-1]) == s[-1]:
         raise ValidationError("Noid check character '" + s[-1] + "' doesn't match up for '" + s + "'.")
     return True
 
@@ -72,7 +74,7 @@ def version():
     return VERSION
 
 
-def _n2xdig(n, mask):
+def __n2xdig(n, mask):
     req = n
     xdig = ''
     for c in mask[::-1]:
@@ -87,8 +89,8 @@ def _n2xdig(n, mask):
         xdig += (XDIGIT[value])
         
     if mask[0] == 'z':
+        c = mask[1]
         while n > 0:
-            c = mask[1]
             if c == 'e':
                 div = len(XDIGIT)
             elif c == 'd':
@@ -107,7 +109,7 @@ def _n2xdig(n, mask):
     return xdig[::-1]
 
 
-def _validateMask(mask):
+def __validateMask(mask):
     masks = ['e', 'd']
     checkchar = ['k']
 
@@ -123,7 +125,7 @@ def _validateMask(mask):
     return True         
 
 
-def _getTotal(mask):
+def __getTotal(mask):
     if mask[0] == 'z':
         total = NOLIMIT
     else:
@@ -136,7 +138,7 @@ def _getTotal(mask):
     return total            
         
 
-def _checkdigit(s):
+def __checkdigit(s):
     # TODO: Fix checkdigit to autostrip scheme names shorter or longer than 3 chars.
     try:
         if s[3] == ':':

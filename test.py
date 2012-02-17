@@ -16,7 +16,7 @@ class PynoidTests(unittest.TestCase):
         self.assertTrue(noid.startswith('abc/'))
 
     def test_scheme_append(self):
-        schemes = ['doi:', 'ark:/']
+        schemes = ['doi:', 'ark:/', 'http://']
         for scheme in schemes:
             noid = pynoid.mint(scheme=scheme)
             self.assertTrue(noid.startswith(scheme))
